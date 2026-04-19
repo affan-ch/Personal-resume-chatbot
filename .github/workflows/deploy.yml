@@ -17,47 +17,33 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      # 1. Setup server
       - name: Setup server
         run: |
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
-
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
           sudo apt update
           sudo apt install -y python3 python3-pip python3-venv nginx
-
           sudo mkdir -p /var/www/flaskapp
           sudo chown -R $USER:$USER /var/www/flaskapp
-
           EOF
 
-      # 2. Upload files
       - name: Upload project files
         run: |
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" scp app.py ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/flaskapp/
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" scp requirements.txt ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/flaskapp/
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" scp index.html ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/flaskapp/
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" scp -o StrictHostKeyChecking=no app.py requirements.txt index.html ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/flaskapp/
 
-      # 3. Install dependencies
       - name: Install Python dependencies
         run: |
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
-
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
           cd /var/www/flaskapp
-
           python3 -m venv venv
           source venv/bin/activate
-
           pip install --upgrade pip
           pip install -r requirements.txt
-
           EOF
 
-      # 4. Gunicorn service
       - name: Setup Gunicorn service
         run: |
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << EOF
-
-          sudo bash -c 'cat > /etc/systemd/system/flaskapp.service << EOL
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+          sudo tee /etc/systemd/system/flaskapp.service > /dev/null << 'EOL'
           [Unit]
           Description=Flask App
           After=network.target
@@ -70,20 +56,17 @@ jobs:
 
           [Install]
           WantedBy=multi-user.target
-          EOL'
+          EOL
 
           sudo systemctl daemon-reload
           sudo systemctl enable flaskapp
           sudo systemctl restart flaskapp
-
           EOF
 
-      # 5. Nginx (FIXED — NO ESCAPING ISSUES)
       - name: Configure Nginx
         run: |
           sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
-
-          sudo bash -c 'cat > /etc/nginx/sites-available/flaskapp << EOL
+          sudo tee /etc/nginx/sites-available/flaskapp > /dev/null << 'EOL'
           server {
               listen 80;
               server_name chatbot.codebyte.site;
@@ -91,26 +74,22 @@ jobs:
               root /var/www/flaskapp;
               index index.html;
 
-              # Frontend
               location / {
                   try_files $uri $uri/ /index.html;
               }
 
-              # Backend API
               location /api/ {
                   proxy_pass http://127.0.0.1:5000/;
-
                   proxy_set_header Host $host;
                   proxy_set_header X-Real-IP $remote_addr;
                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                   proxy_set_header X-Forwarded-Proto $scheme;
               }
           }
-          EOL'
+          EOL
 
           sudo ln -sf /etc/nginx/sites-available/flaskapp /etc/nginx/sites-enabled/flaskapp
-
+          sudo rm -f /etc/nginx/sites-enabled/default
           sudo nginx -t
           sudo systemctl restart nginx
-
           EOF
