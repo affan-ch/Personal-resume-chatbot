@@ -90,7 +90,7 @@ def chat():
         "X-Title": "Resume Chatbot"
     }
     payload = {
-        "model": "openai/gpt-3.5-turbo",
+        "model": "deepseek/deepseek-r1:free",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message}
