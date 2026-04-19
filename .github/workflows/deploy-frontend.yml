@@ -17,11 +17,19 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
+      - name: Prepare VPS (create directory)
+        run: |
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+          
+          sudo mkdir -p /var/www/html
+          sudo chown -R $USER:$USER /var/www/html
+      
+          EOF
+
       - name: Copy files to VPS
         run: |
           sshpass -p "${{ secrets.VPS_PASSWORD }}" scp -o StrictHostKeyChecking=no -r ./* ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/html/
-          sudo mkdir -p /var/www/html
-          sudo chown -R $USER:$USER /var/www/html
+          
       - name: Setup Nginx and restart
         run: |
           sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
