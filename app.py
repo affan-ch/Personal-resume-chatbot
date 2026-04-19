@@ -91,7 +91,7 @@ def chat():
         "X-Title": "Resume Chatbot"
     }
     payload = {
-        "model": "deepseek/deepseek-r1:free",
+        "model": "qwen/qwen3-235b-a22b",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message}
