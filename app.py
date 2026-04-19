@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, send_file
 import requests
 
@@ -55,7 +56,7 @@ CERTIFICATIONS & LEARNING
 - Hugging Face NLP Course – Hugging Face (Self-Study)
 """
 
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 SYSTEM_PROMPT = f"""You are an AI assistant named "Rida's Resume Assistant". Your only knowledge source is the resume of Hafiza Rida Fatima provided below. Answer all user questions exclusively using the information from that resume. If the question cannot be answered from the resume, politely say that the information is not available in the resume and suggest asking about her skills, projects, experience, education, or certifications. Be helpful, concise, and friendly.
